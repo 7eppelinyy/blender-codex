@@ -70,7 +70,7 @@ def call_codex(prompt: str, history: list[dict] | None = None) -> tuple[str, str
     ctx = ssl.create_default_context()
 
     try:
-        with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         try:

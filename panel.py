@@ -22,29 +22,27 @@ class CODEX_PT_main(bpy.types.Panel):
 
         # --- Prompt input ---
         col = layout.column(align=True)
-        col.label(text="Describe what you want to create:", icon="TEXT")
+        col.label(text="描述你想创建的内容：", icon="TEXT")
         col.prop(context.scene, "codex_prompt", text="")
         col.operator(CODEX_OT_send_prompt.bl_idname, icon="EXPORT")
 
-        # --- Generated code ---
         layout.separator()
         row = layout.row()
-        row.label(text="Generated Script", icon="SCRIPT")
+        row.label(text="生成的脚本", icon="SCRIPT")
         if LAST_CODE:
             row.operator(CODEX_OT_copy_code.bl_idname, text="", icon="COPYDOWN")
 
         box = layout.box()
         col = box.column(align=True)
         if LAST_CODE:
-            # Truncate display to first 40 lines for UI sanity
             lines = LAST_CODE.strip().split("\n")
             display = "\n".join(lines[:40])
             if len(lines) > 40:
-                display += f"\n\n… ({len(lines) - 40} more lines)"
+                display += f"\n\n…（还有 {len(lines) - 40} 行）"
             for line in display.split("\n"):
                 col.label(text=line[:100] or " ")
         else:
-            col.label(text="Your generated code will appear here.", icon="INFO")
+            col.label(text="AI 生成的代码将显示在这里。", icon="INFO")
 
         # --- Execute / Clear ---
         layout.separator()
@@ -56,7 +54,7 @@ class CODEX_PT_main(bpy.types.Panel):
         if context.scene.codex_status:
             layout.separator()
             box = layout.box()
-            icon = "ERROR" if "error" in context.scene.codex_status.lower() else "INFO"
+            icon = "ERROR" if any(w in context.scene.codex_status for w in ("Error", "出错", "失败")) else "INFO"
             box.label(text=context.scene.codex_status, icon=icon)
 
 
