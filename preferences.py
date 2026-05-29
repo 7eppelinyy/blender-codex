@@ -7,7 +7,7 @@ class CodexPreferences(bpy.types.AddonPreferences):
     api_key: bpy.props.StringProperty(
         name="API Key",
         subtype="PASSWORD",
-        description="OpenAI API key (sk-…)",
+        description="API key (OpenAI: sk-… / DeepSeek: sk-…)",
     )
     model: bpy.props.EnumProperty(
         name="Model",
@@ -16,6 +16,9 @@ class CodexPreferences(bpy.types.AddonPreferences):
             ("gpt-4-turbo", "GPT-4 Turbo", "Strong reasoning"),
             ("o3-mini", "o3-mini", "Lightweight reasoning model"),
             ("gpt-4.1", "GPT-4.1", "Latest flagship"),
+            ("", "", ""),
+            ("deepseek-chat", "DeepSeek-V3", "Fast, cost-effective"),
+            ("deepseek-reasoner", "DeepSeek-R1", "Deep reasoning model"),
         ],
         default="gpt-4o",
         description="Model used for code generation",
@@ -57,13 +60,12 @@ class CodexPreferences(bpy.types.AddonPreferences):
 
         layout.separator()
         box = layout.box()
-        box.label(text="How to get an API key", icon="INFO")
+        box.label(text="Setup Guide", icon="INFO")
         col = box.column(align=True)
-        col.label(text="1. Visit platform.openai.com")
-        col.label(text="2. Create an account or sign in")
-        col.label(text="3. Go to API Keys → Create new secret key")
-        col.label(text="4. Copy the key (starts with sk-)")
-        col.label(text="5. Paste it above")
+        col.label(text="OpenAI: platform.openai.com → API Keys")
+        col.label(text="DeepSeek: platform.deepseek.com → API Keys")
+        col.label(text="Set API Base to https://api.deepseek.com")
+        col.label(text="Then paste your key above")
 
 
 def register():
