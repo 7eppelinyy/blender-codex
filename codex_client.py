@@ -77,6 +77,8 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", f"Bearer {api_key}")
         ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
 
         try:
             with urllib.request.urlopen(req, timeout=45, context=ctx) as resp:
