@@ -1,7 +1,9 @@
 import json
+import re
 import base64
 import urllib.request
 import urllib.error
+import urllib.parse
 import ssl
 from textwrap import dedent
 
@@ -95,12 +97,58 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     return code, None
 
 
+def _search_web(query: str, max_results: int = 5) -> str:
+    """Search DuckDuckGo and return formatted results as plain text."""
+    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "BlenderCodex/1.0"})
+    ctx = ssl.create_default_context()
+    try:
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception:
+        return "（搜索超时或网络错误）"
+
+    # Extract result blocks: each block has a title link and a snippet
+    blocks = re.findall(
+        r'<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)</a>'
+        r'.*?<a[^>]*class="result__snippet"[^>]*>(.*?)</a>',
+        html, re.DOTALL,
+    )
+    if not blocks:
+        return "（未找到相关搜索结果）"
+
+    lines = []
+    for i, (href, title, snippet) in enumerate(blocks[:max_results]):
+        href = href.strip()
+        title = re.sub(r"<[^>]+>", "", title).strip()
+        snippet = re.sub(r"<[^>]+>", "", snippet).strip()
+        lines.append(f"[{i + 1}] {title}\n    {snippet}\n    {href}")
+
+    return "\n\n".join(lines)
+
+
+def _get_search_enabled() -> bool:
+    try:
+        import bpy
+        return bpy.context.preferences.addons[__package__].preferences.enable_search
+    except Exception:
+        return False
+
+
 def call_codex(prompt: str, history: list[dict] | None = None) -> tuple[str, str | None]:
     """Send a text-only prompt."""
+    user_content = prompt
+    if _get_search_enabled():
+        search_results = _search_web(prompt)
+        user_content = (
+            f"用户请求: {prompt}\n\n"
+            f"[联网搜索结果 — 请参考以下信息生成代码]\n{search_results}"
+        )
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if history:
         messages.extend(history)
-    messages.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": user_content})
     return _api_request(messages)
 
 

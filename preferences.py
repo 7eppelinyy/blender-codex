@@ -44,6 +44,11 @@ class CodexPreferences(bpy.types.AddonPreferences):
         default="https://api.openai.com/v1",
         description="OpenAI-compatible API endpoint (supports proxies and mirrors)",
     )
+    enable_search: bpy.props.BoolProperty(
+        name="Enable Web Search",
+        default=False,
+        description="Search the web and inject results into the prompt before sending to AI",
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -57,6 +62,7 @@ class CodexPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "model")
         layout.prop(self, "max_tokens", slider=True)
         layout.prop(self, "temperature", slider=True)
+        layout.prop(self, "enable_search")
 
         layout.separator()
         box = layout.box()
