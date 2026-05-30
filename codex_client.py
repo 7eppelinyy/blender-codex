@@ -69,6 +69,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     }).encode("utf-8")
 
     url = f"{api_base.rstrip('/')}/chat/completions"
+    print(f"[Codex] 请求: model={model} url={url} key_len={len(api_key)}")
 
     # 直连，跳过系统代理（代理可能干扰 HTTPS 连接）
     proxy_handler = urllib.request.ProxyHandler({})
@@ -81,8 +82,13 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         req.add_header("Authorization", f"Bearer {api_key}")
 
         try:
+            print(f"[Codex] 第 {attempt + 1}/3 次尝试…")
             with opener.open(req, timeout=180) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+                status = resp.status
+                print(f"[Codex] HTTP {status}，正在读取响应…")
+                raw = resp.read()
+                print(f"[Codex] 读取完成，{len(raw)} 字节")
+                data = json.loads(raw.decode("utf-8"))
         except urllib.error.HTTPError as e:
             try:
                 detail = json.loads(e.read().decode("utf-8"))
@@ -122,8 +128,10 @@ def _search_web(query: str, max_results: int = 5) -> str:
     """Search DuckDuckGo and return formatted results as plain text."""
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
     req = urllib.request.Request(url, headers={"User-Agent": "BlenderCodex/1.0"})
+    proxy_handler = urllib.request.ProxyHandler({})
+    search_opener = urllib.request.build_opener(proxy_handler)
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with search_opener.open(req, timeout=10) as resp:
             html = resp.read().decode("utf-8", errors="replace")
     except Exception:
         return "（搜索超时或网络错误）"
