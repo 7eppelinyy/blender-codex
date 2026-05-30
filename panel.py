@@ -72,28 +72,34 @@ class CODEX_PT_main(bpy.types.Panel):
             box.label(text=scene.codex_status, icon=icon)
 
 
+_scene_props = ("codex_prompt", "codex_status", "codex_image_path")
+
+
 def register():
-    bpy.types.Scene.codex_prompt = bpy.props.StringProperty(
-        name="Prompt",
-        description="用自然语言描述要创建什么",
-        default="",
-    )
-    bpy.types.Scene.codex_status = bpy.props.StringProperty(
-        name="Status",
-        description="最近一次操作状态",
-        default="",
-    )
-    bpy.types.Scene.codex_image_path = bpy.props.StringProperty(
-        name="图片路径",
-        description="可选的参考图片，AI 会识别后建模",
-        default="",
-        subtype="FILE_PATH",
-    )
+    if not hasattr(bpy.types.Scene, "codex_prompt"):
+        bpy.types.Scene.codex_prompt = bpy.props.StringProperty(
+            name="Prompt",
+            description="用自然语言描述要创建什么",
+            default="",
+        )
+    if not hasattr(bpy.types.Scene, "codex_status"):
+        bpy.types.Scene.codex_status = bpy.props.StringProperty(
+            name="Status",
+            description="最近一次操作状态",
+            default="",
+        )
+    if not hasattr(bpy.types.Scene, "codex_image_path"):
+        bpy.types.Scene.codex_image_path = bpy.props.StringProperty(
+            name="图片路径",
+            description="可选的参考图片，AI 会识别后建模",
+            default="",
+            subtype="FILE_PATH",
+        )
     bpy.utils.register_class(CODEX_PT_main)
 
 
 def unregister():
     bpy.utils.unregister_class(CODEX_PT_main)
-    del bpy.types.Scene.codex_prompt
-    del bpy.types.Scene.codex_status
-    del bpy.types.Scene.codex_image_path
+    for prop in _scene_props:
+        if hasattr(bpy.types.Scene, prop):
+            delattr(bpy.types.Scene, prop)

@@ -7,7 +7,7 @@ bl_info = {
     "description": "AI 驱动的 Blender 建模助手，支持文字描述和图片识别转 3D",
     "category": "3D View",
     "support": "COMMUNITY",
-    "tracker_url": "https://github.com/yourname/blender-codex/issues",
+    "tracker_url": "https://github.com/7eppelinyy/blender-codex/issues",
 }
 
 import bpy
