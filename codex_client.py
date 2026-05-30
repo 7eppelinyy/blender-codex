@@ -7,6 +7,8 @@ import urllib.parse
 import ssl
 from textwrap import dedent
 
+from . import ADDON_ID
+
 SYSTEM_PROMPT = dedent("""\
 You are a Blender Python scripting engine. Your ONLY output must be valid, runnable Python code for Blender's `bpy` API.
 
@@ -37,7 +39,7 @@ def get_api_config():
     prefs = None
     try:
         import bpy
-        prefs = bpy.context.preferences.addons[__package__].preferences
+        prefs = bpy.context.preferences.addons[ADDON_ID].preferences
     except (KeyError, AttributeError, ImportError):
         pass
 
@@ -130,7 +132,7 @@ def _search_web(query: str, max_results: int = 5) -> str:
 def _get_search_enabled() -> bool:
     try:
         import bpy
-        return bpy.context.preferences.addons[__package__].preferences.enable_search
+        return bpy.context.preferences.addons[ADDON_ID].preferences.enable_search
     except Exception:
         return False
 

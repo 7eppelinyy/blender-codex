@@ -168,10 +168,8 @@ classes = (
 
 def register():
     for cls in classes:
-        try:
+        if not hasattr(bpy.types, cls.__name__):
             bpy.utils.register_class(cls)
-        except Exception as e:
-            print(f"[Codex] 注册 {cls.__name__} 失败: {e}")
 
 
 def unregister():

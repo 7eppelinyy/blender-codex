@@ -95,10 +95,8 @@ def register():
             default="",
             subtype="FILE_PATH",
         )
-    try:
+    if not hasattr(bpy.types, CODEX_PT_main.__name__):
         bpy.utils.register_class(CODEX_PT_main)
-    except Exception as e:
-        print(f"[Codex] 注册 panel 失败: {e}")
 
 
 def unregister():

@@ -1,8 +1,9 @@
 import bpy
+from . import ADDON_ID
 
 
 class CodexPreferences(bpy.types.AddonPreferences):
-    bl_idname = __package__
+    bl_idname = ADDON_ID
 
     api_key: bpy.props.StringProperty(
         name="API Key",
@@ -75,10 +76,8 @@ class CodexPreferences(bpy.types.AddonPreferences):
 
 
 def register():
-    try:
+    if not hasattr(bpy.types, CodexPreferences.__name__):
         bpy.utils.register_class(CodexPreferences)
-    except Exception as e:
-        print(f"[Codex] 注册 preferences 失败: {e}")
 
 
 def unregister():
