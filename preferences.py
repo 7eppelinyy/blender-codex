@@ -75,8 +75,14 @@ class CodexPreferences(bpy.types.AddonPreferences):
 
 
 def register():
-    bpy.utils.register_class(CodexPreferences)
+    try:
+        bpy.utils.register_class(CodexPreferences)
+    except Exception as e:
+        print(f"[Codex] 注册 preferences 失败: {e}")
 
 
 def unregister():
-    bpy.utils.unregister_class(CodexPreferences)
+    try:
+        bpy.utils.unregister_class(CodexPreferences)
+    except Exception as e:
+        print(f"[Codex] 注销 preferences 失败: {e}")

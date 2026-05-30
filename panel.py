@@ -95,11 +95,20 @@ def register():
             default="",
             subtype="FILE_PATH",
         )
-    bpy.utils.register_class(CODEX_PT_main)
+    try:
+        bpy.utils.register_class(CODEX_PT_main)
+    except Exception as e:
+        print(f"[Codex] 注册 panel 失败: {e}")
 
 
 def unregister():
-    bpy.utils.unregister_class(CODEX_PT_main)
+    try:
+        bpy.utils.unregister_class(CODEX_PT_main)
+    except Exception as e:
+        print(f"[Codex] 注销 panel 失败: {e}")
     for prop in _scene_props:
         if hasattr(bpy.types.Scene, prop):
-            delattr(bpy.types.Scene, prop)
+            try:
+                delattr(bpy.types.Scene, prop)
+            except Exception as e:
+                print(f"[Codex] 删除属性 {prop} 失败: {e}")

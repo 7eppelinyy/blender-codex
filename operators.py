@@ -168,9 +168,15 @@ classes = (
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        try:
+            bpy.utils.register_class(cls)
+        except Exception as e:
+            print(f"[Codex] 注册 {cls.__name__} 失败: {e}")
 
 
 def unregister():
     for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except Exception as e:
+            print(f"[Codex] 注销 {cls.__name__} 失败: {e}")
