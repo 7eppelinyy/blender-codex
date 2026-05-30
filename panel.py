@@ -64,15 +64,27 @@ class CODEX_PT_main(bpy.types.Panel):
         row.operator(CODEX_OT_execute_code.bl_idname, icon="PLAY")
         row.operator(CODEX_OT_clear_history.bl_idname, icon="TRASH")
 
-        # --- Status ---
-        if scene.codex_status:
+        # --- Progress / Status ---
+        if scene.codex_loading:
+            layout.separator()
+            box = layout.box()
+            box.label(text=f"请求中… 已等待 {scene.codex_elapsed} 秒", icon="SORTTIME")
+            col = box.column(align=True)
+            col.progress(factor=scene.codex_progress, type="BAR")
+            if scene.codex_status:
+                col.label(text=scene.codex_status, icon="INFO")
+
+        if scene.codex_status and not scene.codex_loading:
             layout.separator()
             box = layout.box()
             icon = "ERROR" if any(w in scene.codex_status for w in ("Error", "出错", "失败")) else "INFO"
             box.label(text=scene.codex_status, icon=icon)
 
 
-_scene_props = ("codex_prompt", "codex_status", "codex_image_path")
+_scene_props = (
+    "codex_prompt", "codex_status", "codex_image_path",
+    "codex_progress", "codex_loading", "codex_elapsed",
+)
 
 
 def register():
@@ -94,6 +106,24 @@ def register():
             description="可选的参考图片，AI 会识别后建模",
             default="",
             subtype="FILE_PATH",
+        )
+    if not hasattr(bpy.types.Scene, "codex_progress"):
+        bpy.types.Scene.codex_progress = bpy.props.FloatProperty(
+            name="进度",
+            default=0.0,
+            min=0.0,
+            max=1.0,
+            subtype="FACTOR",
+        )
+    if not hasattr(bpy.types.Scene, "codex_loading"):
+        bpy.types.Scene.codex_loading = bpy.props.BoolProperty(
+            name="加载中",
+            default=False,
+        )
+    if not hasattr(bpy.types.Scene, "codex_elapsed"):
+        bpy.types.Scene.codex_elapsed = bpy.props.IntProperty(
+            name="已过秒数",
+            default=0,
         )
     if not hasattr(bpy.types, CODEX_PT_main.__name__):
         bpy.utils.register_class(CODEX_PT_main)

@@ -1,4 +1,5 @@
 import os
+import time
 import threading
 import bpy
 from . import codex_client
@@ -8,8 +9,10 @@ LAST_CODE: str = ""
 
 _worker: threading.Thread | None = None
 _worker_result: tuple[str, str] | None = None
+_request_start_time: float = 0
 
 WORKER_CHECK_INTERVAL = 0.3
+API_TIMEOUT_ESTIMATE = 25.0
 
 
 def _do_request(prompt: str, image_path: str, history: list[dict] | None):
@@ -24,28 +27,37 @@ def _do_request(prompt: str, image_path: str, history: list[dict] | None):
 def _check_worker():
     global _worker, _worker_result, LAST_CODE, CODE_HISTORY
 
-    if _worker is None or _worker.is_alive():
+    if _worker is not None and _worker.is_alive():
+        elapsed = time.time() - _request_start_time
+        progress = min(elapsed / API_TIMEOUT_ESTIMATE, 0.92)
+        scene = bpy.context.scene
+        scene.codex_progress = progress
+        scene.codex_elapsed = int(elapsed)
         return WORKER_CHECK_INTERVAL
 
     result = _worker_result
     _worker = None
     _worker_result = None
 
-    context = bpy.context
+    scene = bpy.context.scene
+    scene.codex_loading = False
+
     if result is None:
-        context.scene.codex_status = "错误：未获取到 API 返回结果。"
+        scene.codex_status = "错误：未获取到 API 返回结果。"
         return None
 
     code, error = result
     if error:
-        context.scene.codex_status = f"错误：{error}"
+        scene.codex_status = f"错误：{error}"
+        scene.codex_progress = 0.0
         return None
 
     LAST_CODE = code
-    prompt = context.scene.codex_prompt.strip() or "(图片识别)"
+    scene.codex_progress = 1.0
+    prompt = scene.codex_prompt.strip() or "(图片识别)"
     CODE_HISTORY.append({"role": "user", "content": prompt})
     CODE_HISTORY.append({"role": "assistant", "content": code})
-    context.scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
+    scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
     return None
 
 
@@ -56,7 +68,7 @@ class CODEX_OT_send_prompt(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        global _worker, _worker_result
+        global _worker, _worker_result, _request_start_time
         prompt = context.scene.codex_prompt.strip()
         image_path = context.scene.codex_image_path.strip()
 
@@ -73,7 +85,11 @@ class CODEX_OT_send_prompt(bpy.types.Operator):
             return {"CANCELLED"}
 
         context.scene.codex_status = "正在请求 AI…"
+        context.scene.codex_progress = 0.0
+        context.scene.codex_elapsed = 0
+        context.scene.codex_loading = True
         _worker_result = None
+        _request_start_time = time.time()
 
         history = list(CODE_HISTORY[-20:]) if CODE_HISTORY else None
         _worker = threading.Thread(
