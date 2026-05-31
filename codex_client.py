@@ -364,10 +364,13 @@ def _fix_api_compat(code: str) -> str:
 
     # 1. Socket name fixes — use str.replace() for 100% reliability.
     #    Do BOTH quote styles: the LLM may use either.
+    _original = code
     code = code.replace("['Specular']", "['Specular IOR Level']")
     code = code.replace('["Specular"]', '["Specular IOR Level"]')
     code = code.replace("['Subsurface']", "['Subsurface Weight']")
     code = code.replace('["Subsurface"]', '["Subsurface Weight"]')
+    if code != _original:
+        print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
 
     # 2. Strip lines that try to enable addons (comment them out)
     code = re.sub(
