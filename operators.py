@@ -156,11 +156,38 @@ class CODEX_OT_execute_code(bpy.types.Operator):
 
         context.scene.codex_status = "正在执行…"
 
-        # 执行前最后一次代码修正（安全网）
-        patched = _fix_api_compat(LAST_CODE)
-        if patched != LAST_CODE:
-            print("[Codex] _fix_api_compat applied changes", flush=True)
-        LAST_CODE = patched
+        # ═══════════════════════════════════════════════════════════
+        # 内联代码修正（Blender 4.2 兼容性）—— 不用任何 import，
+        # 纯 str.replace()，绝不会静默失败。
+        # ═══════════════════════════════════════════════════════════
+        import re
+        code = LAST_CODE
+
+        # 1. 废弃 socket 名 → 4.2 新版名称
+        code = code.replace("['Specular']", "['Specular IOR Level']")
+        code = code.replace('["Specular"]', '["Specular IOR Level"]')
+
+        # 2. 注释掉 addon_enable 调用
+        code = re.sub(
+            r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
+            r'# [Codex] removed addon enable call',
+            code, flags=re.MULTILINE,
+        )
+
+        # 3. 注释掉需扩展的操作符
+        for banned in (
+            'bpy\\.ops\\.mesh\\.primitive_teapot_add',
+            'bpy\\.ops\\.curve\\.tree_add',
+        ):
+            code = re.sub(
+                rf'^.*{banned}.*$',
+                r'# [Codex] removed (requires addon)',
+                code, flags=re.MULTILINE,
+            )
+
+        if code != LAST_CODE:
+            print("[Codex] inline patch applied!", flush=True)
+        LAST_CODE = code
 
         _write_to_text_editor(LAST_CODE)
 
