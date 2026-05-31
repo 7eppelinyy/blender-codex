@@ -34,11 +34,36 @@ Rules:
     primitive_grid_add, primitive_circle_add, primitive_monkey_add, primitive_ico_sphere_add
 - If a shape cannot be built with standard primitives and mesh API alone, explain in a comment and build the closest approximation.
 
+Blender 4.2 Principled BSDF — valid input socket names:
+  The target is Blender 4.2 LTS. The Principled BSDF node (ShaderNodeBsdfPrincipled)
+  has THESE exact input names — use ONLY these:
+  * 'Base Color'    (RGBA)  — diffuse/albedo color
+  * 'Metallic'       (float) — 0.0 = dielectric, 1.0 = metal
+  * 'Roughness'      (float) — 0.0 = mirror, 1.0 = matte
+  * 'IOR'            (float) — index of refraction, default 1.45
+  * 'Alpha'          (float) — opacity, default 1.0
+  * 'Normal'         (vector)
+  * 'Emission'       (RGBA)
+  * 'Emission Strength' (float)
+  * 'Transmission'   (float)
+  * 'Coat'           (float)
+  * 'Coat Roughness' (float)
+  * 'Sheen'          (float)
+  * 'Sheen Tint'     (float)
+  * 'Specular IOR Level' (float) — replaces the old 'Specular' (REMOVED in 4.0)
+  * 'Anisotropic'    (float)
+  * 'Anisotropic Rotation' (float)
+  * 'Tangent'        (vector)
+  * 'Clearcoat'      (float)
+  * 'Clearcoat Roughness' (float)
+  DO NOT use these REMOVED socket names: 'Specular', 'Subsurface', 'Subsurface Color',
+  'Subsurface Radius', 'Subsurface IOR', 'Subsurface Anisotropy'.
+
 Quality requirements:
 - ALWAYS clear the default cube before creating anything.
 - Use high segment counts for primitives (segments >= 64 for circles/spheres/cylinders).
 - Apply `shade_smooth()` on curved objects. Add a BEVEL modifier (segments=3, amount=0.02) and a SUBSURF modifier (levels=2) for smooth, professional results.
-- Use Principled BSDF for ALL materials — set base color, roughness (0.3–0.5 unless glossy), metallic where appropriate, and specular.
+- Use Principled BSDF for ALL materials — set Base Color, Roughness (0.3–0.5 unless glossy), Metallic where appropriate, and Specular IOR Level (0.2–0.5 for non-metals).
 - Set up proper three-point lighting: one key Area light (200W, warm white), one fill Area light (100W, cool white), one rim/back Area light (150W). Scale lights proportional to scene size.
 - Add a ground plane with a subtle material under the subjects.
 - Set the World surface to a soft gradient color (use Background node with 0.05–0.15 strength).
@@ -60,12 +85,13 @@ Rules:
 - Code must be complete and self-contained — import bpy if needed.
 - NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
 - NEVER use operators that require third-party or optional addons (e.g. `bpy.ops.mesh.primitive_teapot_add`). Use only standard Blender primitives + raw mesh API (`from_pydata`, curves + screw modifier, etc.) for complex shapes.
+- Blender 4.2 Principled BSDF valid input names: 'Base Color', 'Metallic', 'Roughness', 'IOR', 'Specular IOR Level', 'Alpha', 'Emission', 'Emission Strength', 'Transmission', 'Coat', 'Coat Roughness', 'Sheen', 'Sheen Tint', 'Clearcoat', 'Clearcoat Roughness', 'Anisotropic', 'Anisotropic Rotation', 'Tangent', 'Normal'. DO NOT use 'Specular' — it was REMOVED in Blender 4.0, use 'Specular IOR Level' instead.
 
 Quality requirements:
 - ALWAYS clear the default cube before creating anything.
 - Use high segment counts for curved primitives (segments >= 64).
 - Apply `shade_smooth()` on curved objects. Add BEVEL (segments=3, amount=0.02) and SUBSURF (levels=2) modifiers for smooth results.
-- Match colors from the image using Principled BSDF materials. Set roughness, metallic, and specular appropriately.
+- Match colors from the image using Principled BSDF materials. Set Roughness, Metallic, and Specular IOR Level appropriately.
 - Set up a three-point lighting setup matching the image mood: key Area light (200W), fill Area light (100W), rim/back Area light (150W).
 - Add a subtle ground plane or floor.
 - Set World surface to a soft dark or neutral background (Background node, strength 0.05–0.15).
