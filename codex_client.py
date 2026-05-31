@@ -259,7 +259,10 @@ def call_codex(prompt: str, history: list[dict] | None = None) -> tuple[str, str
     if history:
         messages.extend(history)
     messages.append({"role": "user", "content": user_content})
-    return _api_request(messages)
+    code, err = _api_request(messages)
+    if not err:
+        code = _fix_api_compat(code)
+    return code, err
 
 
 def call_codex_vision(image_path: str, prompt: str) -> tuple[str, str | None]:
@@ -291,7 +294,10 @@ def call_codex_vision(image_path: str, prompt: str) -> tuple[str, str | None]:
             ],
         },
     ]
-    return _api_request(messages)
+    code, err = _api_request(messages)
+    if not err:
+        code = _fix_api_compat(code)
+    return code, err
 
 
 def _strip_markdown_fences(text: str) -> str:
