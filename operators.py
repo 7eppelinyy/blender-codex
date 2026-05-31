@@ -192,6 +192,14 @@ class CODEX_OT_execute_code(bpy.types.Operator):
 
         if code != LAST_CODE:
             print("[Codex] inline patch applied!", flush=True)
+
+        # 最终检查：代码里还剩 'Specular' 吗？
+        if "'Specular'" in code or '"Specular"' in code:
+            import re as _re
+            for _i, _line in enumerate(code.split('\n'), 1):
+                if _re.search(r"""['"]Specular['"]""", _line) and 'IOR Level' not in _line:
+                    print(f"[Codex] WARNING: residual 'Specular' at line {_i}: {_line.strip()}", flush=True)
+
         LAST_CODE = code
 
         _write_to_text_editor(LAST_CODE)
@@ -208,6 +216,9 @@ class CODEX_OT_execute_code(bpy.types.Operator):
         try:
             exec(LAST_CODE, namespace)
         except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            print(f"[Codex] EXEC ERROR:\n{tb}", flush=True)
             context.scene.codex_status = f"执行出错: {e}"
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
