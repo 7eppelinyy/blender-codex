@@ -172,6 +172,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
             print(f"[Codex] chosen code: {repr(code[:200]) if code else '(empty)'}", flush=True)
             code = _strip_markdown_fences(code)
             code = _sanitize_ascii(code)
+            code = _fix_api_compat(code)
             return code, None
         except urllib.error.HTTPError as e:
             try:
@@ -351,3 +352,26 @@ def _sanitize_ascii(text: str) -> str:
             # Drop all other non-ASCII characters (CJK, emoji, etc.)
             pass
     return "".join(result)
+
+
+def _fix_api_compat(code: str) -> str:
+    """Fix deprecated Blender API calls in generated code for Blender 4.2.
+
+    LLMs are often trained on older Blender documentation and use removed
+    socket names. This function rewrites them before execution.
+    """
+    import re
+
+    fixes = [
+        # Principled BSDF: 'Specular' removed in 4.0 -> 'Specular IOR Level'
+        (r"""inputs\[(['\"])Specular\1\]""",
+         """inputs['Specular IOR Level']"""),
+        # Principled BSDF: 'Subsurface' removed in 4.0 -> 'Subsurface Weight'
+        (r"""inputs\[(['\"])Subsurface\1\]""",
+         """inputs['Subsurface Weight']"""),
+    ]
+
+    for pattern, replacement in fixes:
+        code = re.sub(pattern, replacement, code)
+
+    return code
