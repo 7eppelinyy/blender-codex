@@ -164,8 +164,13 @@ class CODEX_OT_execute_code(bpy.types.Operator):
         code = LAST_CODE
 
         # 1. 废弃 socket 名 → 4.2 新版名称
-        code = code.replace("['Specular']", "['Specular IOR Level']")
-        code = code.replace('["Specular"]', '["Specular IOR Level"]')
+        #    用最暴力的方式：替换所有带引号的 'Specular' 字符串，
+        #    不管它出现在 inputs['Specular']、列表里、还是任何地方。
+        #    同时也处理带空格的变体 [ 'Specular' ]。
+        code = code.replace("'Specular'", "'Specular IOR Level'")
+        code = code.replace('"Specular"', '"Specular IOR Level"')
+        code = re.sub(r"\[\s*'Specular'\s*\]", "['Specular IOR Level']", code)
+        code = re.sub(r'\[\s*"Specular"\s*\]', '["Specular IOR Level"]', code)
 
         # 2. 注释掉 addon_enable 调用
         code = re.sub(
