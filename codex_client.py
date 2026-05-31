@@ -12,12 +12,13 @@ from . import ADDON_ID
 SYSTEM_PROMPT = dedent("""\
 You are a Blender Python scripting engine. Your ONLY output must be valid, runnable Python code for Blender's `bpy` API.
 
+CRITICAL — CHARACTER SET: Python source code MUST contain ONLY ASCII characters (U+0000–U+007F). Any Unicode character outside ASCII — including Chinese/Japanese/Korean characters (U+3000–U+303F, U+FF00–U+FFEF, U+4E00–U+9FFF), emoji, or any non-Latin script — will cause a SyntaxError and crash the script. Every comma is U+002C, every period is U+002E, every parenthesis is U+0028/U+0029. Write ALL comments and strings in English.
+
 Rules:
 - Output ONLY raw Python code. No markdown fences, no explanations, no commentary.
 - Code must be complete and self-contained — import bpy if needed, define variables before use.
 - If the user asks for something impossible, output a Python comment explaining why.
 - Use `import bpy` at the top of every script.
-- Use ONLY ASCII characters. Python does not accept full-width/half-width Unicode punctuation (U+FF00–U+FFEF) like ，。；：（）！？. Every comma must be U+002C, every parenthesis U+0028/U+0029. If you write comments in a non-English language, use English instead.
 - NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
 - NEVER use operators that require third-party or optional addons. The following DO NOT exist in vanilla Blender and MUST NOT be used:
   * bpy.ops.mesh.primitive_teapot_add() — requires "Extra Objects" addon
@@ -51,11 +52,12 @@ Quality requirements:
 VISION_PROMPT = dedent("""\
 You are a Blender Python scripting engine. Analyze the provided image and generate valid Blender Python code to recreate the object, shape, or scene shown.
 
+CRITICAL — CHARACTER SET: Python source code MUST contain ONLY ASCII characters (U+0000–U+007F). Any Unicode character outside ASCII will cause a SyntaxError. Write ALL comments and strings in English.
+
 Rules:
 - Output ONLY raw Python code. No markdown fences, no explanations, no commentary.
 - Identify the main object in the image and model it using Blender's `bpy` API.
 - Code must be complete and self-contained — import bpy if needed.
-- Use ONLY ASCII characters. Python does not accept full-width/half-width Unicode punctuation (U+FF00–U+FFEF) like ，。；：（）！？. Every comma must be U+002C, every parenthesis U+0028/U+0029.
 - NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
 - NEVER use operators that require third-party or optional addons (e.g. `bpy.ops.mesh.primitive_teapot_add`). Use only standard Blender primitives + raw mesh API (`from_pydata`, curves + screw modifier, etc.) for complex shapes.
 
@@ -143,6 +145,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
                 code = str(msg)
             print(f"[Codex] chosen code: {repr(code[:200]) if code else '(empty)'}", flush=True)
             code = _strip_markdown_fences(code)
+            code = _sanitize_ascii(code)
             return code, None
         except urllib.error.HTTPError as e:
             try:
@@ -273,3 +276,52 @@ def _strip_markdown_fences(text: str) -> str:
     if text.endswith("```"):
         text = text[:-3].strip()
     return text
+
+
+def _sanitize_ascii(text: str) -> str:
+    """Replace common CJK/fullwidth punctuation with ASCII equivalents.
+
+    This is a safety net: even if the LLM ignores the prompt and outputs
+    Chinese punctuation, we fix it before execution instead of crashing.
+    """
+    replacements = {
+        # Full-width ASCII variants (U+FF01–U+FF5E)
+        "！": "!",  "＂": '"',  "＃": "#",  "＄": "$",
+        "％": "%",  "＆": "&",  "＇": "'",  "（": "(",
+        "）": ")",  "＊": "*",  "＋": "+",  "，": ",",
+        "－": "-",  "．": ".",  "／": "/",  "：": ":",
+        "；": ";",  "＜": "<",  "＝": "=",  "＞": ">",
+        "？": "?",  "＠": "@",  "［": "[",  "＼": "\\\\",
+        "］": "]",  "＾": "^",  "＿": "_",  "｀": "`",
+        "｛": "{",  "｜": "|",  "｝": "}",  "～": "~",
+        # CJK punctuation (U+3000–U+303F)
+        "　": " ",  "、": ",",  "。": ".",  "〃": "#",
+        "〈": "<",  "〉": ">",  "《": "<<", "》": ">>",
+        "「": "'",  "」": "'",  "『": '"',  "』": '"',
+        "【": "[",  "】": "]",  "〔": "(",  "〕": ")",
+        "〖": "(",  "〗": ")",  "〘": "{",  "〙": "}",
+        "〚": "[",  "〛": "]",
+    }
+    result = []
+    for ch in text:
+        if ch in replacements:
+            result.append(replacements[ch])
+        elif ord(ch) < 128:
+            result.append(ch)
+        elif ord(ch) <= 0x2000:
+            # Latin-1 Supplement, General Punctuation — keep spaces/safe chars
+            # but filter out invisible/control characters
+            cat = (
+                "Zs"  # space separator
+                if ch in (" ", " ", " ", " ", " ",
+                          " ", " ", " ", " ", " ",
+                          " ", " ", "​")
+                else None
+            )
+            if cat == "Zs":
+                result.append(" ")
+            # else: drop the character
+        else:
+            # Drop all other non-ASCII characters (CJK, emoji, etc.)
+            pass
+    return "".join(result)
