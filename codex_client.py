@@ -359,43 +359,51 @@ def _fix_api_compat(code: str) -> str:
 
     LLMs are often trained on older Blender docs.  This runs BEFORE
     execution and is the last line of defence.
+
+    Wrapped in try/except so a bug here can NEVER crash code generation.
     """
-    import re
+    print("[Codex] _fix_api_compat running...", flush=True)
+    try:
+        import re
 
-    # 1. Socket name fixes — use str.replace() for 100% reliability.
-    #    Do BOTH quote styles: the LLM may use either.
-    _original = code
-    code = code.replace("['Specular']", "['Specular IOR Level']")
-    code = code.replace('["Specular"]', '["Specular IOR Level"]')
-    code = code.replace("['Subsurface']", "['Subsurface Weight']")
-    code = code.replace('["Subsurface"]', '["Subsurface Weight"]')
-    if code != _original:
-        print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
+        # 1. Socket name fixes — str.replace(), bulletproof
+        _before = code
+        code = code.replace("['Specular']", "['Specular IOR Level']")
+        code = code.replace('["Specular"]', '["Specular IOR Level"]')
+        code = code.replace("['Subsurface']", "['Subsurface Weight']")
+        code = code.replace('["Subsurface"]', '["Subsurface Weight"]')
+        if code != _before:
+            print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
 
-    # 2. Strip lines that try to enable addons (comment them out)
-    code = re.sub(
-        r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
-        r'# [Codex] removed: \g<0>',
-        code,
-        flags=re.MULTILINE,
-    )
-
-    # 3. Strip calls to operators that require optional addons
-    banned_ops = [
-        r'bpy\.ops\.mesh\.primitive_teapot_add',
-        r'bpy\.ops\.mesh\.primitive_geodesic_dome_add',
-        r'bpy\.ops\.mesh\.primitive_stepped_cylinder_add',
-        r'bpy\.ops\.mesh\.primitive_rounded_cube_add',
-        r'bpy\.ops\.mesh\.primitive_gear_add',
-        r'bpy\.ops\.mesh\.primitive_pipe_add',
-        r'bpy\.ops\.add\.torus_plus_add',
-    ]
-    for op_pattern in banned_ops:
+        # 2. Strip lines that enable addons
         code = re.sub(
-            rf'^.*{op_pattern}.*$',
-            r'# [Codex] removed (requires addon): \g<0>',
+            r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
+            r'# [Codex] removed addon_enable call',
             code,
             flags=re.MULTILINE,
         )
 
-    return code
+        # 3. Strip calls to operators that require optional addons
+        banned_ops = [
+            r'bpy\.ops\.mesh\.primitive_teapot_add',
+            r'bpy\.ops\.mesh\.primitive_geodesic_dome_add',
+            r'bpy\.ops\.mesh\.primitive_stepped_cylinder_add',
+            r'bpy\.ops\.mesh\.primitive_rounded_cube_add',
+            r'bpy\.ops\.mesh\.primitive_gear_add',
+            r'bpy\.ops\.mesh\.primitive_pipe_add',
+            r'bpy\.ops\.add\.torus_plus_add',
+            r'bpy\.ops\.curve\.tree_add',         # Sapling addon
+        ]
+        for op_pattern in banned_ops:
+            code = re.sub(
+                rf'^.*{op_pattern}.*$',
+                r'# [Codex] removed (requires addon): \g<0>',
+                code,
+                flags=re.MULTILINE,
+            )
+
+        print("[Codex] _fix_api_compat done", flush=True)
+        return code
+    except Exception as e:
+        print(f"[Codex] _fix_api_compat ERROR: {e}", flush=True)
+        return code  # return original, don't break the pipeline
